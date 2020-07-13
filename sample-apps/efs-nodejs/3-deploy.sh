@@ -8,7 +8,7 @@ if [[ $# -eq 1 ]] ; then
 fi
 cd lib/nodejs && npm install && cd ../../
 aws cloudformation package --template-file template.yml --s3-bucket $ARTIFACT_BUCKET --output-template-file out.yml
-aws cloudformation deploy --template-file out.yml --stack-name $STACK --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file out.yml --stack-name $STACK --capabilities CAPABILITY_NAMED_IAM --parameter-overrides bucket=$ARTIFACT_BUCKET
 
 # attach to different VPC
 #aws cloudformation deploy --template-file out.yml --stack-name $STACK --capabilities CAPABILITY_NAMED_IAM --parameter-overrides vpcStackName=lambda-vpc

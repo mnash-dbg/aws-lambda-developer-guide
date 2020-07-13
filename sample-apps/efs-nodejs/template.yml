@@ -10,11 +10,18 @@ Parameters:
     Default: "/mnt/efs0"
     Description: File system mount path
     Type: String
+  readIterations:
+    Default: 1
+    Description: Number of reads of the file to make
+    Type: Number
+  bucket:
+    Description: S3 bucket
+    Type: String
 Resources:
   function:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: function/.
+      CodeUri: function/
       Description: Use a file system.
       FileSystemConfigs:
         - LocalMountPath: !Ref mountPath
@@ -23,6 +30,8 @@ Resources:
       Environment:
           Variables:
             mountPath: !Ref mountPath
+            readIterations: !Ref readIterations
+            bucket: !Ref bucket
       MemorySize: 128
       Timeout: 15
       Runtime: nodejs12.x
@@ -42,3 +51,5 @@ Resources:
         - AWSLambdaVPCAccessExecutionRole
         - AmazonElasticFileSystemClientReadWriteAccess
         - AWSXRayDaemonWriteAccess
+        - S3CrudPolicy:
+            BucketName: !Ref bucket

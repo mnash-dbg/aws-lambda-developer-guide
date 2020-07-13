@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-STACK=efs-nodejs
+STACK=mn-efs-s3-read-test
 if [[ $# -eq 1 ]] ; then
     STACK=$1
     echo "Deleting stack $STACK"
