@@ -2,10 +2,10 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "mn-efs-s3-read-test"
+stack_name = "mn-efs-read-test"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-86rvgpysomdn"
-s3_prefix = "mn-efs-s3-read-test"
+s3_prefix = "mn-efs-read-test"
 region = "eu-west-2"
 capabilities = "CAPABILITY_NAMED_IAM"
-parameter_overrides = "vpcStackName=\"mn-efs-nodejs-vpc\" mountPath=\"/mnt/efs0\" readIterations=\"1\" bucket=\"mn-efs-nodejs-vpc-bucket\""
+parameter_overrides = "vpcStackName=\"mn-efs-nodejs-vpc\" mountPath=\"/mnt/efs0\" readIterations=\"10\""
 

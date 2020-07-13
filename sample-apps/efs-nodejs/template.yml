@@ -3,7 +3,7 @@ Description: An AWS Lambda application that connects to an EFS file system in th
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   vpcStackName:
-    Default: efs-nodejs-vpc
+    Default: ""
     Description: VPC and file system stack name
     Type: String
   mountPath:
@@ -14,12 +14,18 @@ Parameters:
     Default: 1
     Description: Number of reads of the file to make
     Type: Number
-  bucket:
-    Description: S3 bucket
-    Type: String
+Conditions:
+  testS3: !Equals [!Ref vpcStackName, ""]
+  testEfs: !Not [!Condition testS3]
 Resources:
-  function:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: testS3
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-bucket
+  efsFunction:
     Type: AWS::Serverless::Function
+    Condition: testEfs
     Properties:
       CodeUri: function/
       Description: Use a file system.
@@ -29,9 +35,9 @@ Resources:
             Fn::ImportValue: !Sub "${vpcStackName}-accesspoint"
       Environment:
           Variables:
+            vpcStackName: !Ref vpcStackName
             mountPath: !Ref mountPath
             readIterations: !Ref readIterations
-            bucket: !Ref bucket
       MemorySize: 128
       Timeout: 15
       Runtime: nodejs12.x
@@ -51,5 +57,26 @@ Resources:
         - AWSLambdaVPCAccessExecutionRole
         - AmazonElasticFileSystemClientReadWriteAccess
         - AWSXRayDaemonWriteAccess
+  s3Function:
+    Type: AWS::Serverless::Function
+    Condition: testS3
+    Properties:
+      CodeUri: function/
+      Description: Use S3.
+      Environment:
+          Variables:
+            mountPath: !Ref mountPath
+            readIterations: !Ref readIterations
+            bucket: !Ref S3Bucket
+            readFromCache: ""
+      MemorySize: 128
+      Timeout: 15
+      Runtime: nodejs12.x
+      Tracing: Active
+      Handler: index.handler
+      # Function's execution role
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - AWSXRayDaemonWriteAccess
         - S3CrudPolicy:
-            BucketName: !Ref bucket
+            BucketName: !Ref S3Bucket

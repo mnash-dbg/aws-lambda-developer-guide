@@ -1,156 +1,21 @@
 AWSTemplateFormatVersion: 2010-09-09
-Parameters:
-  eipAllocationId:
-    Description: Elastic IP allocation ID
-    Type: String
 Resources:
-  VPC:
-    Type: 'AWS::EC2::VPC'
-    Properties:
-      CidrBlock: !Sub '10.0.0.0/16'
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      InstanceTenancy: default
-  InternetGateway:
-    Type: 'AWS::EC2::InternetGateway'
-    Properties:
-      Tags:
-      - Key: Name
-        Value: !Sub '10.0.0.0/16'
-  VPCGatewayAttachment:
-    Type: 'AWS::EC2::VPCGatewayAttachment'
-    Properties:
-      VpcId: !Ref VPC
-      InternetGatewayId: !Ref InternetGateway
-  SubnetAPublic:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Sub '10.0.0.0/20'
-      MapPublicIpOnLaunch: true
-      VpcId: !Ref VPC
-  SubnetAPrivate:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Sub '10.0.128.0/20'
-      VpcId: !Ref VPC
-  SubnetBPublic:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: !Sub '10.0.16.0/20'
-      MapPublicIpOnLaunch: true
-      VpcId: !Ref VPC
-  SubnetBPrivate:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: !Sub '10.0.144.0/20'
-      VpcId: !Ref VPC
-  RouteTableAPublic:
-    Type: 'AWS::EC2::RouteTable'
-    Properties:
-      VpcId: !Ref VPC
-  RouteTableAPrivate:
-    Type: 'AWS::EC2::RouteTable'
-    Properties:
-      VpcId: !Ref VPC
-  RouteTableBPublic:
-    Type: 'AWS::EC2::RouteTable'
-    Properties:
-      VpcId: !Ref VPC
-  RouteTableBPrivate:
-    Type: 'AWS::EC2::RouteTable'
-    Properties:
-      VpcId: !Ref VPC
-  RouteTableAssociationAPublic:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref SubnetAPublic
-      RouteTableId: !Ref RouteTableAPublic
-  RouteTableAssociationAPrivate:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref SubnetAPrivate
-      RouteTableId: !Ref RouteTableAPrivate
-  RouteTableAssociationBPublic:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref SubnetBPublic
-      RouteTableId: !Ref RouteTableBPublic
-  RouteTableAssociationBPrivate:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref SubnetBPrivate
-      RouteTableId: !Ref RouteTableBPrivate
-  RouteTablePublicAInternetRoute:
-    Type: 'AWS::EC2::Route'
-    DependsOn: VPCGatewayAttachment
-    Properties:
-      RouteTableId: !Ref RouteTableAPublic
-      DestinationCidrBlock: '0.0.0.0/0'
-      GatewayId: !Ref InternetGateway
-  RouteTablePublicBInternetRoute:
-    Type: 'AWS::EC2::Route'
-    DependsOn: VPCGatewayAttachment
-    Properties:
-      RouteTableId: !Ref RouteTableBPublic
-      DestinationCidrBlock: '0.0.0.0/0'
-      GatewayId: !Ref InternetGateway
-  # EIPA:
-  #   Type: 'AWS::EC2::EIP'
-  #   Properties:
-  #     Domain: vpc
-  # EIPB:
-  #   Type: 'AWS::EC2::EIP'
-  #   Properties:
-  #     Domain: vpc
-  # NatGatewayA:
-  #   Type: 'AWS::EC2::NatGateway'
-  #   Properties:
-  #     AllocationId: !GetAtt 'EIPA.AllocationId'
-  #     SubnetId: !Ref SubnetAPublic
-  RouteA:
-    Type: 'AWS::EC2::Route'
-    Properties:
-      RouteTableId: !Ref RouteTableAPrivate
-      DestinationCidrBlock: '0.0.0.0/0'
-      # NatGatewayId: !Ref NatGatewayA
-      GatewayId: !Ref InternetGateway
-  # NatGatewayB:
-  #   Type: 'AWS::EC2::NatGateway'
-  #   Properties:
-  #     AllocationId: !GetAtt 'EIPB.AllocationId'
-  #     SubnetId: !Ref SubnetBPublic
-  RouteB:
-    Type: 'AWS::EC2::Route'
-    Properties:
-      RouteTableId: !Ref RouteTableBPrivate
-      DestinationCidrBlock: '0.0.0.0/0'
-      # NatGatewayId: !Ref NatGatewayB
-      GatewayId: !Ref InternetGateway
-  NatGatewayLambdaSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      VpcId: !Ref VPC
-      GroupDescription: 'Security group for NAT Gateway Lambda'
   fileSystem:
     Type: AWS::EFS::FileSystem
   mountTargetA:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref fileSystem
-      SubnetId: !Ref SubnetAPrivate
+      SubnetId: !Ref privateSubnetA
       SecurityGroups:
-        - !GetAtt VPC.DefaultSecurityGroup
+        - !GetAtt privateVPC.DefaultSecurityGroup
   mountTargetB:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref fileSystem
-      SubnetId: !Ref SubnetBPrivate
+      SubnetId: !Ref privateSubnetB
       SecurityGroups:
-        - !GetAtt VPC.DefaultSecurityGroup
+        - !GetAtt privateVPC.DefaultSecurityGroup
   accessPoint:
     Type: AWS::EFS::AccessPoint
     Properties:
@@ -164,31 +29,91 @@ Resources:
           OwnerUid: "1001"
           Permissions: "755"
         Path: "/efs-nodejs-storage"
-  S3Bucket:
-    Type: AWS::S3::Bucket
+  privateVPC:
+    Type: AWS::EC2::VPC
     Properties:
-      BucketName: !Sub ${AWS::StackName}-bucket
+      CidrBlock: 172.31.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  privateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref privateVPC
+      AvailabilityZone:
+        Fn::Select:
+         - 0
+         - Fn::GetAZs: ""
+      CidrBlock: 172.31.3.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName","subnet-a"]]
+  privateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref privateVPC
+      AvailabilityZone:
+        Fn::Select:
+         - 1
+         - Fn::GetAZs: ""
+      CidrBlock: 172.31.2.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref "AWS::StackName","subnet-b"]]
+  privateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref privateVPC
+  privateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref privateSubnetA
+      RouteTableId: !Ref privateRouteTable
+  privateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref privateSubnetB
+      RouteTableId: !Ref privateRouteTable
 Outputs:
-  VPCSecurityGroup:
+  privateVPCSecurityGroup:
     Description: Default security for Lambda VPC
-    Value: !GetAtt VPC.DefaultSecurityGroup
+    Value: !GetAtt privateVPC.DefaultSecurityGroup
     Export:
       Name: !Join ["-", [!Ref "AWS::StackName","vpc-sg"]]
-  SubnetAPrivate:
-    Description: The ID of private subnet one created
-    Value: !Ref SubnetAPrivate
+  privateVPCID:
+    Description: VPC ID
+    Value: !Ref privateVPC
+    Export:
+      Name: !Join ["-", [!Ref "AWS::StackName","vpc"]]
+  privateSubnetAID:
+    Description: Private Subnet A ID
+    Value: !Ref privateSubnetA
     Export:
       Name: !Join ["-", [!Ref "AWS::StackName","subnet-a"]]
-  SubnetBPrivate:
-    Description: The ID of private subnet two created
-    Value: !Ref SubnetBPrivate
+  privateSubnetBID:
+    Description: Private Subnet B ID
+    Value: !Ref privateSubnetB
     Export:
       Name: !Join ["-", [!Ref "AWS::StackName","subnet-b"]]
+  fileSystemId:
+    Description: File system ID
+    Value: !Ref fileSystem
+    Export:
+      Name: !Join ["-", [!Ref "AWS::StackName","filesystem"]]
+  mountTargetA:
+    Description: Mount point A ID
+    Value: !Ref mountTargetA
+    Export:
+      Name: !Join ["-", [!Ref "AWS::StackName","mounttarget-a"]]
+  mountTargetB:
+    Description: Mount point B ID
+    Value: !Ref mountTargetB
+    Export:
+      Name: !Join ["-", [!Ref "AWS::StackName","mounttarget-b"]]
   accessPointArn:
     Description: Access point ARN
     Value: !GetAtt accessPoint.Arn
     Export:
       Name: !Join ["-", [!Ref "AWS::StackName","accesspoint"]]
-  S3Bucket:
-    Description: S3 Bucket name
-    Value: !Ref S3Bucket
